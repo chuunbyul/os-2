@@ -20,8 +20,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="commands.txt">
-      <Filter>소스 파일</Filter>
-    </Text>
+    <Text Include="commands.txt" />
   </ItemGroup>
 </Project>
