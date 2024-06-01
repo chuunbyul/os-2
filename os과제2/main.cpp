@@ -14,20 +14,19 @@
 
 using namespace std;
 mutex mtx;
-string line;
-vector<string> vec;
-#define	Y	500
+vector<string> vec, vec_FG;
+#define	Y	200
 
 void read(const string& filename);
-void shell(int, int, const string&);
+void FG(int, int);
+void BG(int, int, const string&);
 void dummy();
 int gcd(int, int);
 int prime(int);
 long long sum(int);
-void FG(string);
 
 void read(const string& filename) {
-	string str;
+	string str, line;
 	ifstream file(filename);
 
 	while (getline(file, line)) {
@@ -41,15 +40,40 @@ void read(const string& filename) {
 	}
 }
 
-void shell(int id, int delay_ms, const string& filename) {
-	Sleep(delay_ms);
-	mtx.lock();
+void FG(int id, int delay_ms) {
+	string inputLine;
+
+	cout << "prompt> ";
+	getline(cin, inputLine);
+
+	istringstream iss(inputLine);
+	string token;
+	while (iss >> token) {
+		size_t pos = 0;
+		while ((pos = token.find_first_of(";&")) != string::npos) {
+			if (pos > 0) {
+				vec_FG.push_back(token.substr(0, pos));
+			}
+			vec_FG.push_back(string(1, token[pos]));
+			token.erase(0, pos + 1);
+		}
+		if (!token.empty()) {
+			vec_FG.push_back(token);
+		}
+	}
+	for (auto& str : vec_FG) {
+		cout << str << endl;
+	}
+}
+
+void BG(int id, int delay_ms, const string& filename) {
 	string str;
 	ifstream file(filename);
 	int i = 0;
 	int x, y;
-
 	for (i = 0; i < vec.size(); i++) {
+		Sleep(delay_ms);
+		mtx.lock();
 		if (vec[i] == "echo") {
 			getline(file, str);
 			cout << "prompt> ";
@@ -94,8 +118,8 @@ void shell(int id, int delay_ms, const string& filename) {
 				cout << sum(x) << endl;
 			}
 		}
+		mtx.unlock();
 	}
-	mtx.unlock();
 }
 
 void dummy() {}
@@ -132,16 +156,16 @@ long long sum(int x) {
 	return sum % 1000000;
 }
 
-void FG(string str) {
 
-}
 
 int main() {
 	string filename = "commands.txt";
 	read(filename);
 
-	thread t1(shell, 1, Y, filename);
+	thread t1(BG, 1, Y, filename);
+	thread t2(FG, 2, Y);
 	t1.join();
+	t2.join();
 	printf("--------------------- \n");
 
 	return 0;
