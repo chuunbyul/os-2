@@ -1,5 +1,5 @@
-echo abc 
-dummy 
-gcd 12 16 
+echo abc -p 1 -n 3
+dummy
+gcd 12 16 -p 1
 prime 10000
-sum 100000
+sum 100000 -m 4 -p 2 -n 2
