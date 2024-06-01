@@ -38,7 +38,7 @@ void FG(string str) {
 int main() {
 	string str;
 	vector<string> vec;
-	auto i = 0;
+	int i = 0;
 	ifstream file("commands.txt");
 
 	while (getline(file, str, ' ')) {
