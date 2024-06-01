@@ -1,6 +1,2 @@
-START_PROCESS process1
-STATUS
-STOP_PROCESS process1
-RESTART_PROCESS process2
-STATUS
-EXIT
+ehco abc
+dummy
