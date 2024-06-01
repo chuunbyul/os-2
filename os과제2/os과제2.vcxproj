@@ -127,8 +127,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="main2.cpp" />
+    <ClCompile Include="save.cpp" />
+    <ClCompile Include="2-3main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="commands.txt" />
