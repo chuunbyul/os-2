@@ -1,2 +1,5 @@
-ehco abc
-dummy
+echo abc 
+dummy 
+gcd 12 16 
+prime 10000
+sum 100000

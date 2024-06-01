@@ -14,60 +14,133 @@
 
 using namespace std;
 mutex mtx;
+string line;
+vector<string> vec;
 #define	Y	500
 
-void shell(int, int);
+void read(const string& filename);
+void shell(int, int, const string&);
 void dummy();
+int gcd(int, int);
+int prime(int);
+long long sum(int);
 void FG(string);
 
-void shell(int id, int delay_ms) {
+void read(const string& filename) {
+	string str;
+	ifstream file(filename);
+
+	while (getline(file, line)) {
+		istringstream iss(line);
+		while (iss >> str) {
+			vec.push_back(str);
+		}
+	}
+	for (auto& str1 : vec) {
+		cout << str1 << endl;
+	}
+}
+
+void shell(int id, int delay_ms, const string& filename) {
 	Sleep(delay_ms);
 	mtx.lock();
-	cout << "prompt> ";
+	string str;
+	ifstream file(filename);
+	int i = 0;
+	int x, y;
 
-	//FG()
+	for (i = 0; i < vec.size(); i++) {
+		if (vec[i] == "echo") {
+			getline(file, str);
+			cout << "prompt> ";
+			cout << str << endl;
+			cout << vec[i + 1] << endl;
+		}
+		if (vec[i] == "dummy") {
+			getline(file, str);
+			cout << "prompt> ";
+			cout << str << endl;
+			dummy();
+		}
+		if (vec[i] == "gcd") {
+			getline(file, str);
+			cout << "prompt> ";
+			cout << str << endl;
+			x = stoi(vec[i + 1]);
+			y = stoi(vec[i + 2]);
+			cout << gcd(x, y) << endl;
+		}
+		if (vec[i] == "prime") {
+			getline(file, str);
+			cout << "prompt> ";
+			cout << str << endl;
+			x = stoi(vec[i + 1]);
+			if (x > 100000) {
+				cerr << "10만을 초과하였습니다." << endl;
+			}
+			else {
+				cout << prime(x) << endl;
+			}
+		}
+		if (vec[i] == "sum") {
+			getline(file, str);
+			cout << "prompt> ";
+			cout << str << endl;
+			x = stoi(vec[i + 1]);
+			if (x > 1000000) {
+				cerr << "100만을 초과하였습니다." << endl;
+			}
+			else {
+				cout << sum(x) << endl;
+			}
+		}
+	}
 	mtx.unlock();
 }
 
 void dummy() {}
+
+int gcd(int x, int y) {
+	while (y != 0) {
+		int temp = y;
+		y = x % y;
+		x = temp;
+	}
+
+	return x;
+}
+
+int prime(int x) {
+	if (x < 2) return 0;
+
+	vector<bool> isPrime(x + 1, true);
+	isPrime[0] = isPrime[1] = false;
+
+	for (int i = 2; i * i <= x; ++i) {
+		if (isPrime[i]) {
+			for (int j = i * i; j <= x; j += i) {
+				isPrime[j] = false;
+			}
+		}
+	}
+
+	return count(isPrime.begin(), isPrime.end(), true);
+}
+
+long long sum(int x) {
+	long long sum = static_cast<long long>(x) * (x + 1) / 2;
+	return sum % 1000000;
+}
 
 void FG(string str) {
 
 }
 
 int main() {
-	string str;
-	vector<string> vec;
-	int i = 0;
-	ifstream file("commands.txt");
+	string filename = "commands.txt";
+	read(filename);
 
-	while (getline(file, str, ' ')) {
-		vec.push_back(str);
-		cout << vec[i] << endl;
-		//Sleep(500);
-		i++;
-	}
-
-	/*for (auto&i:vec) {
-		cout << i << endl;
-		if (i == "echo") {
-			cout << i << endl;
-		}
-		Sleep(500);
-	}*/
-	for (i = 0; i < vec.size(); i++) {
-		if (vec[i] == "echo") {
-			cout << i;
-			cout << vec[i + 1] << endl;
-		}
-		if (vec[i] == "dummy") {
-			dummy();
-		}
-		Sleep(500);
-	}
-
-
-	thread t1(shell, 1, Y);
+	thread t1(shell, 1, Y, filename);
 	t1.join();
 	printf("--------------------- \n");
 
