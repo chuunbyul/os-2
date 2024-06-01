@@ -14,10 +14,11 @@
 
 using namespace std;
 mutex mtx;
-vector<string> vec, vec_FG;
+vector<string> vec_BG, vec_FG;
 #define	Y	200
 
 void read(const string& filename);
+void shell(int, int);
 void FG(int, int);
 void BG(int, int, const string&);
 void dummy();
@@ -32,15 +33,15 @@ void read(const string& filename) {
 	while (getline(file, line)) {
 		istringstream iss(line);
 		while (iss >> str) {
-			vec.push_back(str);
+			vec_BG.push_back(str);
 		}
 	}
-	for (auto& str1 : vec) {
+	for (auto& str1 : vec_BG) {
 		cout << str1 << endl;
 	}
 }
 
-void FG(int id, int delay_ms) {
+void shell(int id, int delay_ms) {
 	string inputLine;
 
 	cout << "prompt> ";
@@ -66,39 +67,90 @@ void FG(int id, int delay_ms) {
 	}
 }
 
+void FG(int id, int delay_ms) {
+	int x, y;
+	
+	for (int i = 0; i < vec_FG.size(); i++) {
+		Sleep(delay_ms);
+		mtx.lock();
+		if (vec_FG[i] == "&") { i++;
+			if (vec_FG[i] == "gcd") {
+				 ++i; vec_BG.push_back(vec_FG[i]);
+				 ++i; vec_BG.push_back(vec_FG[i]);
+				 ++i; vec_BG.push_back(vec_FG[i]);
+			}
+			else {
+				++i; vec_BG.push_back(vec_FG[i]);
+				++i; vec_BG.push_back(vec_FG[i]);
+			}
+		}
+		else {
+			if (vec_FG[i] == "echo") { 
+				++i;
+				cout << vec_FG[i] << endl;
+			}
+			if (vec_FG[i] == "dummy") {
+				dummy();
+			}
+			if (vec_FG[i] == "gcd") {
+				 ++i; x = stoi(vec_FG[i]);
+				 ++i; y = stoi(vec_FG[i]);
+				cout << gcd(x, y) << endl;
+			}
+			if (vec_FG[i] == "prime") {
+				++i; x = stoi(vec_FG[i]);
+				if (x > 100000) {
+					cerr << "10만을 초과하였습니다." << endl;
+				}
+				else {
+					cout << prime(x) << endl;
+				}
+			}
+			if (vec_FG[i] == "sum") {
+				++i; x = stoi(vec_FG[i]);
+				if (x > 1000000) {
+					cerr << "100만을 초과하였습니다." << endl;
+				}
+				else {
+					cout << sum(x) << endl;
+				}
+			}
+		}
+		mtx.unlock();
+	}
+}
+
 void BG(int id, int delay_ms, const string& filename) {
 	string str;
 	ifstream file(filename);
-	int i = 0;
 	int x, y;
-	for (i = 0; i < vec.size(); i++) {
+	for (int i = 0; i < vec_BG.size(); i++) {
 		Sleep(delay_ms);
-		mtx.lock();
-		if (vec[i] == "echo") {
+		if (vec_BG[i] == "echo") {
 			getline(file, str);
 			cout << "prompt> ";
 			cout << str << endl;
-			cout << vec[i + 1] << endl;
+			cout << vec_BG[i + 1] << endl;
 		}
-		if (vec[i] == "dummy") {
+		if (vec_BG[i] == "dummy") {
 			getline(file, str);
 			cout << "prompt> ";
 			cout << str << endl;
 			dummy();
 		}
-		if (vec[i] == "gcd") {
+		if (vec_BG[i] == "gcd") {
 			getline(file, str);
 			cout << "prompt> ";
 			cout << str << endl;
-			x = stoi(vec[i + 1]);
-			y = stoi(vec[i + 2]);
+			x = stoi(vec_BG[i + 1]);
+			y = stoi(vec_BG[i + 2]);
 			cout << gcd(x, y) << endl;
 		}
-		if (vec[i] == "prime") {
+		if (vec_BG[i] == "prime") {
 			getline(file, str);
 			cout << "prompt> ";
 			cout << str << endl;
-			x = stoi(vec[i + 1]);
+			x = stoi(vec_BG[i + 1]);
 			if (x > 100000) {
 				cerr << "10만을 초과하였습니다." << endl;
 			}
@@ -106,11 +158,11 @@ void BG(int id, int delay_ms, const string& filename) {
 				cout << prime(x) << endl;
 			}
 		}
-		if (vec[i] == "sum") {
+		if (vec_BG[i] == "sum") {
 			getline(file, str);
 			cout << "prompt> ";
 			cout << str << endl;
-			x = stoi(vec[i + 1]);
+			x = stoi(vec_BG[i + 1]);
 			if (x > 1000000) {
 				cerr << "100만을 초과하였습니다." << endl;
 			}
@@ -118,7 +170,6 @@ void BG(int id, int delay_ms, const string& filename) {
 				cout << sum(x) << endl;
 			}
 		}
-		mtx.unlock();
 	}
 }
 
@@ -156,16 +207,16 @@ long long sum(int x) {
 	return sum % 1000000;
 }
 
-
-
 int main() {
 	string filename = "commands.txt";
 	read(filename);
 
-	thread t1(BG, 1, Y, filename);
-	thread t2(FG, 2, Y);
+	thread t1(shell, 2, Y);
+	thread t2(FG, 1, Y);
+	thread t3(BG, 1, Y, filename);
 	t1.join();
 	t2.join();
+	t3.join();
 	printf("--------------------- \n");
 
 	return 0;
