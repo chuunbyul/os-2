@@ -21,7 +21,7 @@
 #include <algorithm>
 #include <sstream>
 
-#define Y   100
+#define Y   500
 using namespace std;
 
 class J {
@@ -111,6 +111,7 @@ public:
     }
 
     void display(int fpc) {
+        Sleep(Y);
         lock_guard<mutex> lock(m);
         cout << endl;
         cout << "Running: [" << bc.load() << "B] [" << fpc << "F]" << endl;
@@ -142,11 +143,12 @@ public:
         for (const auto& wj : tq) {
             cout << wj.second->fmtTQ() << " ";
         }
-        cout << "]" << endl << "..." << endl << endl;
+        cout << "]" << endl << endl;
     }
 };
 
 void Echo(const vector<string>& t, int r, int p, int d, JQ& jq) {
+    Sleep(Y);
     for (int i = 0; i < r; ++i) {
         for (size_t j = 1; j < t.size(); ++j) {
             cout << t[j] << " ";
@@ -162,6 +164,7 @@ void Echo(const vector<string>& t, int r, int p, int d, JQ& jq) {
 }
 
 void Dummy(const vector<string>& t, int r, int p, int d, JQ& jq) {
+    Sleep(Y);
     for (int i = 0; i < r; ++i) {
         this_thread::sleep_for(chrono::seconds(p));
 
@@ -172,6 +175,7 @@ void Dummy(const vector<string>& t, int r, int p, int d, JQ& jq) {
 }
 
 void GCD(const vector<string>& t, int r, int p, int d, JQ& jq) {
+    Sleep(Y);
     for (int i = 0; i < r; ++i) {
         if (t.size() != 3) {
             cerr << "Invalid arguments for gcd command" << endl;
@@ -208,6 +212,7 @@ bool isPrime(int n) {
 }
 
 void Prime(const vector<string>& t, int r, int p, int d, JQ& jq) {
+    Sleep(Y);
     for (int i = 0; i < r; ++i) {
         if (t.size() != 2) {
             cerr << "Invalid arguments for prime command" << endl;
@@ -234,6 +239,7 @@ void Prime(const vector<string>& t, int r, int p, int d, JQ& jq) {
 }
 
 void Sum(const vector<string>& t, int r, int p, int d, JQ& jq) {
+    Sleep(Y);
     for (int i = 0; i < r; ++i) {
         if (t.size() != 2) {
             cerr << "Invalid arguments for sum command" << endl;
@@ -259,7 +265,6 @@ void Sum(const vector<string>& t, int r, int p, int d, JQ& jq) {
 }
 
 void procFile(const string& filename, int& fpc, JQ& jq) {
-    Sleep(Y);
     ifstream file(filename);
     string line;
 
