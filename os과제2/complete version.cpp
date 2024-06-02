@@ -21,6 +21,7 @@
 #include <algorithm>
 #include <sstream>
 
+#define Y   100
 using namespace std;
 
 class J {
@@ -258,6 +259,7 @@ void Sum(const vector<string>& t, int r, int p, int d, JQ& jq) {
 }
 
 void procFile(const string& filename, int& fpc, JQ& jq) {
+    Sleep(Y);
     ifstream file(filename);
     string line;
 
