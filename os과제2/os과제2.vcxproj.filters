@@ -21,6 +21,12 @@
     <ClCompile Include="2-3main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="2-2main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="complete version.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="commands.txt" />
