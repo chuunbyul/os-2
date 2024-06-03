@@ -129,6 +129,7 @@
   <ItemGroup>
     <ClCompile Include="2-2main.cpp" />
     <ClCompile Include="complete version.cpp" />
+    <ClCompile Include="realcomplete version.cpp" />
     <ClCompile Include="save.cpp" />
     <ClCompile Include="2-3main.cpp" />
   </ItemGroup>

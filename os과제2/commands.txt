@@ -1,7 +1,7 @@
-echo abc -p 1 -n 2
-&echo qwe; echo zxc
+echo abc
+&echo qwe
 dummy
-gcd 12 16 -p 1
+gcd 12 16
 &gcd 20 30
 prime 10000
-sum 100000 -p 2 -n 2
+sum 100000
