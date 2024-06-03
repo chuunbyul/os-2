@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Complete version.cpp" />
+    <ClCompile Include="complete version.cpp" />
     <ClCompile Include="실패본\failed old.cpp" />
     <ClCompile Include="실패본\failed2-2.cpp" />
     <ClCompile Include="실패본\failed2-3.cpp" />
