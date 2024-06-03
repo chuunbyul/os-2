@@ -1,4 +1,4 @@
-echo abc -n 3 -p 2 -d 10
+echo abc -n 3 -p 2 -d 10 ; &echo rew -p 3 -d 20
 dummy -d 1
 &gcd 10 20 -n 3 -p 4 -d 30
 gcd 12 16 -n 2 -p 3 -d 20
