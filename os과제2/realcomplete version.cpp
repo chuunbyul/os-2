@@ -8,8 +8,15 @@
 #include <condition_variable>
 #include <queue>
 #include <iomanip>
+#include <Windows.h>
+#include <chrono>
+#include <stdlib.h>
+
+#define Y   500
 
 using namespace std;
+using namespace std::chrono;
+mutex mtx;
 
 class CommandQueue {
 private:
@@ -115,7 +122,7 @@ void Sum(const vector<string>& t) {
     cout << s << endl;
 }
 
-void executeCommand(const vector<string>& t) {
+void excSC(const vector<string>& t) {
     const string& c = t[0];
     if (c == "echo") {
         Echo(t);
@@ -137,7 +144,58 @@ void executeCommand(const vector<string>& t) {
     }
 }
 
-void printMonitor(int fgCount, int bgCount, int doneFg, int doneBg) {
+void executeCommand(const vector<string>& t) {
+    int r = 1;
+    int p = 0;
+    int d = 300;
+    int y = 20;
+
+    for (size_t i = 0; i < t.size(); ++i) {
+        if (t[i] == "-n") {
+            if (i + 1 < t.size()) {
+                r = stoi(t[i + 1]);
+            }
+        }
+        else if (t[i] == "-p") {
+            if (i + 1 < t.size()) {
+                p = stoi(t[i + 1]);
+            }
+        }
+        else if (t[i] == "-d") {
+            if (i + 1 < t.size()) {
+                d = stoi(t[i + 1]);
+            }
+        }
+    }
+
+    vector<string> CT;
+    for (size_t i = 0; i < t.size(); ++i) {
+        if (t[i] != "-n" && t[i] != "-p" && t[i] != "-d") {
+            CT.push_back(t[i]);
+        }
+        else {
+            break;
+        }
+    }
+
+    int rp = r * p * y;
+    for (int count = 0; count < r; ++count) {
+        excSC(CT);
+
+        if (p > 0 && d > 0) {
+            Sleep(p * y);
+            if (rp >= d) {
+                cout << "실행시간 초과" << endl;
+                exit(1);
+            }
+        }
+        else if (p > 0) {
+            Sleep(p * y);
+        }
+    }
+}
+
+void Monitor(int fgCount, int bgCount, int doneFg, int doneBg) {
     cout << endl;
     cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
     cout << "---------------------------" << endl;
@@ -165,13 +223,11 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
             t.push_back(tk);
         }
         if (t.empty()) continue;
-
         cout << "prompt> ";
         for (const auto& tk : t) {
             cout << tk << " ";
         }
         cout << endl;
-
         if (t[0][0] == '&') {
             t[0].erase(0, 1);  // Remove '&' character for BG commands
             bgQueue.push(t);
@@ -181,32 +237,29 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
             fgQueue.push(t);
             fgCount++;
         }
-
-        printMonitor(fgCount, bgCount, doneFg, doneBg);
+        Sleep(Y);
     }
 
     fgQueue.setDone();
     bgQueue.setDone();
 }
 
-void processCommands(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, int& doneFg, int& doneBg, bool isFG) {
+void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, int& doneFg, int& doneBg, bool isFG) {
     while (true) {
         vector<string> command = queue.pop();
         if (command.empty()) break;
-
         {
             lock_guard<mutex> lock(printMutex);
             executeCommand(command);
         }
-
         if (isFG) {
             doneFg++;
         }
         else {
             doneBg++;
         }
-
-        printMonitor(fgCount, bgCount, doneFg, doneBg);
+        lock_guard<mutex> lock(printMutex);
+        Monitor(fgCount, bgCount, doneFg, doneBg);
     }
 }
 
@@ -220,8 +273,8 @@ int main() {
     int doneFg = 0;
     int doneBg = 0;
 
-    thread fgThread(processCommands, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), true);
-    thread bgThread(processCommands, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), false);
+    thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), true);
+    thread bgThread(proC, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), false);
 
     procFile(fn, fgQueue, bgQueue, fgCount, bgCount, doneFg, doneBg);
 
