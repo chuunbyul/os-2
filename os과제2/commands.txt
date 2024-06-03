@@ -1,4 +1,4 @@
-echo abc -n 3 -p 2 -d 20
+echo abc -n 3 -p 2 -d 10
 dummy
 &gcd 12 16
 prime 10000 -n 2 -p 4

@@ -13,6 +13,7 @@
 
 #define Y 500
 #define DEFAULT_DURATION 300
+#define DEFAULT_PERIOD 1
 
 using namespace std;
 using namespace std::chrono;
@@ -144,7 +145,7 @@ void executeSingleCommand(const vector<string>& commandTokens) {
 
 void executeCommand(const vector<string>& t) {
     int repeatCount = 1;
-    int period = 0;
+    int period = DEFAULT_PERIOD;
     int duration = DEFAULT_DURATION;
 
     // Parse options
@@ -209,11 +210,14 @@ void Monitor(int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
         cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
         cout << "---------------------------" << endl;
         cout << "DQ: P => ";
-        for (int i = 0; i < doneFg; i++) {
+        for (int i = 0; i < fgCount; i++) {
             cout << "[" << i << "F] ";
+            if (i > 5) cout << endl;
         }
-        for (int i = 0; i < doneBg; i++) {
+        cout << endl << "\t";
+        for (int i = 0; i < bgCount; i++) {
             cout << "[" << i << "B] ";
+            if (i > 5) cout << endl;
         }
         cout << " (bottom / top)" << endl;
         cout << "---------------------------" << endl;
@@ -241,11 +245,27 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
         if (t[0][0] == '&') {
             t[0].erase(0, 1);  // Remove '&' character for BG commands
             bgQueue.push(t);
-            bgCount++;
+            int repeatCount = 1;
+            for (size_t i = 0; i < t.size(); ++i) {
+                if (t[i] == "-n") {
+                    if (i + 1 < t.size()) {
+                        repeatCount = stoi(t[i + 1]);
+                    }
+                }
+            }
+            bgCount += repeatCount;
         }
         else {
             fgQueue.push(t);
-            fgCount++;
+            int repeatCount = 1;
+            for (size_t i = 0; i < t.size(); ++i) {
+                if (t[i] == "-n") {
+                    if (i + 1 < t.size()) {
+                        repeatCount = stoi(t[i + 1]);
+                    }
+                }
+            }
+            fgCount += repeatCount;
         }
         Sleep(Y);
     }
