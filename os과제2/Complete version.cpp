@@ -1,5 +1,3 @@
-// 2-2 2-3 완성
-// 2-3의 -m 구현 못함
 #include <iostream>
 #include <thread>
 #include <string>
@@ -12,9 +10,9 @@
 #include <iomanip>
 #include <Windows.h>
 #include <chrono>
-#include <stdlib.h>
 
-#define Y   500
+#define Y 500
+#define DEFAULT_DURATION 300
 
 using namespace std;
 using namespace std::chrono;
@@ -66,9 +64,7 @@ void Echo(const vector<string>& t) {
     cout << endl;
 }
 
-void Dummy() {
-
-}
+void Dummy() {}
 
 void GCD(const vector<string>& t) {
     if (t.size() != 3) {
@@ -124,22 +120,22 @@ void Sum(const vector<string>& t) {
     cout << s << endl;
 }
 
-void excSC(const vector<string>& t) {
-    const string& c = t[0];
+void executeSingleCommand(const vector<string>& commandTokens) {
+    const string& c = commandTokens[0];
     if (c == "echo") {
-        Echo(t);
+        Echo(commandTokens);
     }
     else if (c == "dummy") {
         Dummy();
     }
     else if (c == "gcd") {
-        GCD(t);
+        GCD(commandTokens);
     }
     else if (c == "prime") {
-        Prime(t);
+        Prime(commandTokens);
     }
     else if (c == "sum") {
-        Sum(t);
+        Sum(commandTokens);
     }
     else {
         cerr << "Unknown command: " << c << endl;
@@ -147,71 +143,83 @@ void excSC(const vector<string>& t) {
 }
 
 void executeCommand(const vector<string>& t) {
-    int r = 1;
-    int p = 0;
-    int d = 300;
-    int y = 20;
+    int repeatCount = 1;
+    int period = 0;
+    int duration = DEFAULT_DURATION;
 
+    // Parse options
     for (size_t i = 0; i < t.size(); ++i) {
         if (t[i] == "-n") {
             if (i + 1 < t.size()) {
-                r = stoi(t[i + 1]);
+                repeatCount = stoi(t[i + 1]);
             }
         }
         else if (t[i] == "-p") {
             if (i + 1 < t.size()) {
-                p = stoi(t[i + 1]);
+                period = stoi(t[i + 1]);
             }
         }
         else if (t[i] == "-d") {
             if (i + 1 < t.size()) {
-                d = stoi(t[i + 1]);
+                duration = stoi(t[i + 1]);
             }
         }
     }
 
-    vector<string> CT;
+    // Extract command tokens
+    vector<string> commandTokens;
     for (size_t i = 0; i < t.size(); ++i) {
         if (t[i] != "-n" && t[i] != "-p" && t[i] != "-d") {
-            CT.push_back(t[i]);
+            commandTokens.push_back(t[i]);
         }
         else {
             break;
         }
     }
 
-    int rp = r * p * y;
-    for (int count = 0; count < r; ++count) {
-        excSC(CT);
+    // Launch threads
+    vector<thread> threads;
+    for (int i = 0; i < repeatCount; ++i) {
+        threads.emplace_back([commandTokens, period, duration]() {
+            auto start = steady_clock::now();
+            while (true) {
+                executeSingleCommand(commandTokens);
 
-        if (p > 0 && d > 0) {
-            Sleep(p * y);
-            if (rp >= d) {
-                cout << "실행시간 초과" << endl;
-                exit(1);
+                if (duration_cast<seconds>(steady_clock::now() - start).count() >= duration) {
+                    break;
+                }
+
+                if (period > 0) {
+                    this_thread::sleep_for(seconds(period));
+                }
             }
-        }
-        else if (p > 0) {
-            Sleep(p * y);
-        }
+            });
+    }
+
+    for (auto& th : threads) {
+        th.join();
     }
 }
 
-void Monitor(int fgCount, int bgCount, int doneFg, int doneBg) {
-    cout << endl;
-    cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
-    cout << "---------------------------" << endl;
-    cout << "DQ: P => ";
-    for (int i = 0; i < doneFg; i++) {
-        cout << "[" << i << "F] ";
+void Monitor(int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
+    while (true) {
+        this_thread::sleep_for(seconds(5));
+        lock_guard<mutex> lock(mtx);
+        cout << endl;
+        cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
+        cout << "---------------------------" << endl;
+        cout << "DQ: P => ";
+        for (int i = 0; i < doneFg; i++) {
+            cout << "[" << i << "F] ";
+        }
+        for (int i = 0; i < doneBg; i++) {
+            cout << "[" << i << "B] ";
+        }
+        cout << " (bottom / top)" << endl;
+        cout << "---------------------------" << endl;
+        cout << "WQ: []" << endl;
+        cout << endl;
     }
-    for (int i = 0; i < doneBg; i++) {
-        cout << " [" << i << "B]";
-    }
-    cout << " (bottom / top)" << endl;
-    cout << "---------------------------" << endl;
-    cout << "WQ: []" << endl;
-    cout << endl;
 }
 
 void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue, int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
@@ -261,7 +269,6 @@ void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, in
             doneBg++;
         }
         lock_guard<mutex> lock(printMutex);
-        Monitor(fgCount, bgCount, doneFg, doneBg);
     }
 }
 
@@ -278,10 +285,13 @@ int main() {
     thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), true);
     thread bgThread(proC, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), false);
 
+    thread monitorThread(Monitor, ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg));
+
     procFile(fn, fgQueue, bgQueue, fgCount, bgCount, doneFg, doneBg);
 
     fgThread.join();
     bgThread.join();
+    monitorThread.detach();
 
     return 0;
 }
