@@ -1,6 +1,6 @@
 echo abc -n 3 -p 2 -d 10
-dummy
-gcd 12 16
-prime 10000 -n 3 -p 4
-&sum 100000
+dummy -d 1
+gcd 12 16 -n 2 -p 3 -d 20
+prime 10000 -n 3 -p 4 -d 60
+&sum 100000 -n 2 -d 10
 &echo qwer -n 2 -p 5 -d 5

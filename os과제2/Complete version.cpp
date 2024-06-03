@@ -141,7 +141,7 @@ void executeSingleCommand(const vector<string>& commandTokens) {
     }
 }
 
-void executeCommand(const vector<string>& t) {
+int executeCommand(const vector<string>& t) {
     int r = 1;
     int p = DEFAULT_PERIOD;
     int d = DEFAULT_DURATION;
@@ -198,6 +198,7 @@ void executeCommand(const vector<string>& t) {
     for (auto& th : threads) {
         th.join();
     }
+    return r;
 }
 
 void Monitor(int& fgCount, int& bgCount) {
@@ -278,8 +279,7 @@ void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, bo
         if (command.empty()) break;
         {
             lock_guard<mutex> lock(printMutex);
-            executeCommand(command);
-            fgCount--;
+            fgCount -= executeCommand(command);
         }
     }
 }
@@ -290,8 +290,7 @@ void bgWorker(CommandQueue& bgQueue, mutex& printMutex, int& bgCount) {
         if (command.empty()) break;
 
         thread([command, &printMutex, &bgCount]() {
-            executeCommand(command);
-            bgCount--;
+            bgCount -= executeCommand(command);
             }).detach();
     }
 }
