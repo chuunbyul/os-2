@@ -114,13 +114,17 @@ void executeCommand(const vector<string>& t) {
     const string& c = t[0];
     if (c == "echo") {
         Echo(t);
-    } else if (c == "gcd") {
+    }
+    else if (c == "gcd") {
         GCD(t);
-    } else if (c == "prime") {
+    }
+    else if (c == "prime") {
         Prime(t);
-    } else if (c == "sum") {
+    }
+    else if (c == "sum") {
         Sum(t);
-    } else {
+    }
+    else {
         cerr << "Unknown command: " << c << endl;
     }
 }
@@ -146,7 +150,8 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
         if (t[0][0] == '&') {
             t[0].erase(0, 1);  // Remove '&' character for BG commands
             bgQueue.push(t);
-        } else {
+        }
+        else {
             fgQueue.push(t);
         }
     }
