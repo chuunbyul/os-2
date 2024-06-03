@@ -1,3 +1,5 @@
+// 2-2 2-3
+// ;, -m 구현 못함
 #include <iostream>
 #include <thread>
 #include <string>
@@ -50,11 +52,6 @@ public:
             done = true;
         }
         cv.notify_all();
-    }
-
-    bool isDone() {
-        lock_guard<mutex> lock(mtx);
-        return done && commands.empty();
     }
 };
 
@@ -122,6 +119,7 @@ void Sum(const vector<string>& t) {
 }
 
 void executeSingleCommand(const vector<string>& commandTokens) {
+    lock_guard<mutex> lock(mtx);
     const string& c = commandTokens[0];
     if (c == "echo") {
         Echo(commandTokens);
@@ -144,25 +142,25 @@ void executeSingleCommand(const vector<string>& commandTokens) {
 }
 
 void executeCommand(const vector<string>& t) {
-    int repeatCount = 1;
-    int period = DEFAULT_PERIOD;
-    int duration = DEFAULT_DURATION;
+    int r = 1;
+    int p = DEFAULT_PERIOD;
+    int d = DEFAULT_DURATION;
 
-    // Parse options
+    // Parse
     for (size_t i = 0; i < t.size(); ++i) {
         if (t[i] == "-n") {
             if (i + 1 < t.size()) {
-                repeatCount = stoi(t[i + 1]);
+                r = stoi(t[i + 1]);
             }
         }
         else if (t[i] == "-p") {
             if (i + 1 < t.size()) {
-                period = stoi(t[i + 1]);
+                p = stoi(t[i + 1]);
             }
         }
         else if (t[i] == "-d") {
             if (i + 1 < t.size()) {
-                duration = stoi(t[i + 1]);
+                d = stoi(t[i + 1]);
             }
         }
     }
@@ -180,18 +178,18 @@ void executeCommand(const vector<string>& t) {
 
     // Launch threads
     vector<thread> threads;
-    for (int i = 0; i < repeatCount; ++i) {
-        threads.emplace_back([commandTokens, period, duration]() {
+    for (int i = 0; i < r; ++i) {
+        threads.emplace_back([commandTokens, p, d]() {
             auto start = steady_clock::now();
             while (true) {
                 executeSingleCommand(commandTokens);
 
-                if (duration_cast<seconds>(steady_clock::now() - start).count() >= duration) {
+                if (duration_cast<seconds>(steady_clock::now() - start).count() >= d) {
                     break;
                 }
 
-                if (period > 0) {
-                    this_thread::sleep_for(seconds(period));
+                if (p > 0) {
+                    this_thread::sleep_for(seconds(p));
                 }
             }
             });
@@ -212,12 +210,12 @@ void Monitor(int& fgCount, int& bgCount) {
         cout << "DQ: P => ";
         for (int i = 0; i < fgCount; i++) {
             cout << "[" << i << "F] ";
-            if (i > 5) cout << endl;
+            if (i != 0 && i % 3 == 0) cout << endl << '\t';
         }
-        cout << endl << "\t";
+        cout << endl << '\t';
         for (int i = 0; i < bgCount; i++) {
             cout << "[" << i << "B] ";
-            if (i > 5) cout << endl;
+            if (i != 0 && i % 3 == 0) cout << endl << '\t';
         }
         cout << " (bottom / top)" << endl;
         cout << "---------------------------" << endl;
@@ -245,27 +243,27 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
         if (t[0][0] == '&') {
             t[0].erase(0, 1);  // Remove '&' character for BG commands
             bgQueue.push(t);
-            int repeatCount = 1;
+            int r = 1;
             for (size_t i = 0; i < t.size(); ++i) {
                 if (t[i] == "-n") {
                     if (i + 1 < t.size()) {
-                        repeatCount = stoi(t[i + 1]);
+                        r = stoi(t[i + 1]);
                     }
                 }
             }
-            bgCount += repeatCount;
+            bgCount += r;
         }
         else {
             fgQueue.push(t);
-            int repeatCount = 1;
+            int r = 1;
             for (size_t i = 0; i < t.size(); ++i) {
                 if (t[i] == "-n") {
                     if (i + 1 < t.size()) {
-                        repeatCount = stoi(t[i + 1]);
+                        r = stoi(t[i + 1]);
                     }
                 }
             }
-            fgCount += repeatCount;
+            fgCount += r;
         }
         Sleep(Y);
     }
@@ -281,8 +279,20 @@ void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, bo
         {
             lock_guard<mutex> lock(printMutex);
             executeCommand(command);
+            fgCount--;
         }
-        lock_guard<mutex> lock(printMutex);
+    }
+}
+
+void bgWorker(CommandQueue& bgQueue, mutex& printMutex, int& bgCount) {
+    while (true) {
+        vector<string> command = bgQueue.pop();
+        if (command.empty()) break;
+
+        thread([command, &printMutex, &bgCount]() {
+            executeCommand(command);
+            bgCount--;
+            }).detach();
     }
 }
 
@@ -293,11 +303,9 @@ int main() {
     mutex printMutex;
     int fgCount = 0;
     int bgCount = 0;
-    int doneFg = 0;
-    int doneBg = 0;
 
     thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), true);
-    thread bgThread(proC, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), false);
+    thread bgThread(bgWorker, ref(bgQueue), ref(printMutex), ref(bgCount));
 
     thread monitorThread(Monitor, ref(fgCount), ref(bgCount));
 
