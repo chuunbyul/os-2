@@ -147,6 +147,30 @@ public:
     }
 };
 
+class Semaphore {
+private:
+    mutex mtx;
+    condition_variable cv;
+    int count;
+
+public:
+    explicit Semaphore(int count_ = 0) : count(count_) {}
+
+    void notify() {
+        unique_lock<mutex> lock(mtx);
+        count++;
+        cv.notify_one();
+    }
+
+    void wait() {
+        unique_lock<mutex> lock(mtx);
+        while (count == 0) {
+            cv.wait(lock);
+        }
+        count--;
+    }
+};
+
 void Echo(const vector<string>& t, int r, int p, int d, JQ& jq) {
     Sleep(Y);
     for (int i = 0; i < r; ++i) {
@@ -268,6 +292,8 @@ void procFile(const string& filename, int& fpc, JQ& jq) {
     ifstream file(filename);
     string line;
 
+    Semaphore fg_sem(1); // ForeGround semaphore
+
     while (getline(file, line)) {
         istringstream iss(line);
         vector<string> t;
@@ -321,46 +347,46 @@ void procFile(const string& filename, int& fpc, JQ& jq) {
             }
         }
 
-        if (!ctk.empty()) {
+        auto command_exec = [ctk, rc, pd, dr, &jq, &fg_sem, bg]() {
+            if (!bg) {
+                fg_sem.wait();
+            }
+
             const string& c = ctk[0];
             if (c == "echo") {
-                if (bg) {
-                    jq.addJ(make_shared<J>(jq.tc++, false, line));
-                }
                 Echo(ctk, rc, pd, dr, jq);
             }
             else if (c == "dummy") {
-                if (bg) {
-                    jq.addJ(make_shared<J>(jq.tc++, false, line));
-                }
                 Dummy(ctk, rc, pd, dr, jq);
             }
             else if (c == "gcd") {
-                if (bg) {
-                    jq.addJ(make_shared<J>(jq.tc++, false, line));
-                }
                 GCD(ctk, rc, pd, dr, jq);
             }
             else if (c == "prime") {
-                if (bg) {
-                    jq.addJ(make_shared<J>(jq.tc++, false, line));
-                }
                 Prime(ctk, rc, pd, dr, jq);
             }
             else if (c == "sum") {
-                if (bg) {
-                    jq.addJ(make_shared<J>(jq.tc++, false, line));
-                }
                 Sum(ctk, rc, pd, dr, jq);
             }
             else {
                 cerr << "Unknown command: " << c << endl;
             }
-        }
 
-        if (!bg && ctk[0] != "dummy") {
+            if (!bg) {
+                fg_sem.notify();
+            }
+            };
+
+        thread th(command_exec);
+        if (bg) {
+            jq.addJ(make_shared<J>(jq.tc++, false, line));
+            th.detach();
+        }
+        else {
+            th.join();
             fpc++;
         }
+
         jq.display(fpc);
     }
 }

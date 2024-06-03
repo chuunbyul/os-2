@@ -1,5 +1,5 @@
 echo abc -p 1 -n 2
-&echo qwe
+&echo qwe; echo zxc
 dummy
 gcd 12 16 -p 1
 &gcd 20 30
