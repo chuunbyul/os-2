@@ -1,5 +1,8 @@
-// 2-2 2-3
-// ;, -m 구현 못함
+// 2-2 껍데기만 구현
+// 2-3 구현
+// 1) ;, & 구현
+// 2) echo, dummy, gcd, prime, sum 구현
+// 3) -n, -d, -p 구현, -m 못함
 #include <iostream>
 #include <thread>
 #include <string>
@@ -12,6 +15,7 @@
 #include <iomanip>
 #include <Windows.h>
 #include <chrono>
+#include <atomic>
 
 #define Y 500
 #define DEFAULT_DURATION 300
@@ -201,8 +205,8 @@ int executeCommand(const vector<string>& t) {
     return r;
 }
 
-void Monitor(int& fgCount, int& bgCount) {
-    while (true) {
+void Monitor(int& fgCount, int& bgCount, atomic<bool>& stop_flag) {
+    while (!stop_flag.load()) {
         this_thread::sleep_for(seconds(3));
         lock_guard<mutex> lock(mtx);
         cout << endl;
@@ -220,7 +224,10 @@ void Monitor(int& fgCount, int& bgCount) {
         }
         cout << " (bottom / top)" << endl;
         cout << "---------------------------" << endl;
-        cout << "WQ: []" << endl;
+        cout << "WQ: [";
+        cout << fgCount << "F ";
+        cout << bgCount << "B";
+        cout << "]" << endl;
         cout << endl;
     }
 }
@@ -241,30 +248,45 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
             cout << tk << " ";
         }
         cout << endl;
-        if (t[0][0] == '&') {
-            t[0].erase(0, 1);  // Remove '&' character for BG commands
-            bgQueue.push(t);
-            int r = 1;
-            for (size_t i = 0; i < t.size(); ++i) {
-                if (t[i] == "-n") {
-                    if (i + 1 < t.size()) {
-                        r = stoi(t[i + 1]);
+
+        size_t i = 0;
+        while (i < t.size()) {
+            vector<string> command;
+            if (t[i][0] == '&') {
+                command.push_back(t[i].substr(1));
+                ++i;
+                while (i < t.size() && t[i] != ";") {
+                    command.push_back(t[i]);
+                    ++i;
+                }
+                bgQueue.push(command);
+                int r = 1;
+                for (size_t j = 0; j < command.size(); ++j) {
+                    if (command[j] == "-n" && j + 1 < command.size()) {
+                        r = stoi(command[j + 1]);
                     }
                 }
+                bgCount += r;
             }
-            bgCount += r;
-        }
-        else {
-            fgQueue.push(t);
-            int r = 1;
-            for (size_t i = 0; i < t.size(); ++i) {
-                if (t[i] == "-n") {
-                    if (i + 1 < t.size()) {
-                        r = stoi(t[i + 1]);
+            else {
+                command.push_back(t[i]);
+                ++i;
+                while (i < t.size() && t[i] != ";") {
+                    command.push_back(t[i]);
+                    ++i;
+                }
+                fgQueue.push(command);
+                int r = 1;
+                for (size_t j = 0; j < command.size(); ++j) {
+                    if (command[j] == "-n" && j + 1 < command.size()) {
+                        r = stoi(command[j + 1]);
                     }
                 }
+                fgCount += r;
             }
-            fgCount += r;
+            if (i < t.size() && t[i] == ";") {
+                ++i;
+            }
         }
         Sleep(Y);
     }
@@ -302,17 +324,19 @@ int main() {
     mutex printMutex;
     int fgCount = 0;
     int bgCount = 0;
+    atomic<bool> stop_flag(false);
 
     thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), true);
     thread bgThread(bgWorker, ref(bgQueue), ref(printMutex), ref(bgCount));
 
-    thread monitorThread(Monitor, ref(fgCount), ref(bgCount));
+    thread monitorThread(Monitor, ref(fgCount), ref(bgCount), ref(stop_flag));
 
     procFile(fn, fgQueue, bgQueue, fgCount, bgCount);
 
     fgThread.join();
     bgThread.join();
-    monitorThread.detach();
+    stop_flag.store(true);
+    monitorThread.join();
 
     return 0;
 }
