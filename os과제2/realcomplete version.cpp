@@ -137,21 +137,26 @@ void executeCommand(const vector<string>& t) {
     }
 }
 
-void printMonitor(int fgCount, int bgCount) {
+void printMonitor(int fgCount, int bgCount, int doneFg, int doneBg) {
     cout << endl;
     cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
     cout << "---------------------------" << endl;
-    cout << "DQ: P => (bottom/top)" << endl;
+    cout << "DQ: P => ";
+    for (int i = 0; i < doneFg; i++) {
+        cout << "[" << i << "F] ";
+    }
+    for (int i = 0; i < doneBg; i++) {
+        cout << " [" << i << "B]";
+    }
+    cout << " (bottom / top)" << endl;
     cout << "---------------------------" << endl;
     cout << "WQ: []" << endl;
     cout << endl;
 }
 
-void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue) {
+void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue, int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
     ifstream file(filename);
     string line;
-    int fgCount = 0;
-    int bgCount = 0;
     while (getline(file, line)) {
         istringstream iss(line);
         vector<string> t;
@@ -177,14 +182,14 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
             fgCount++;
         }
 
-        printMonitor(fgCount, bgCount);
+        printMonitor(fgCount, bgCount, doneFg, doneBg);
     }
 
     fgQueue.setDone();
     bgQueue.setDone();
 }
 
-void processCommands(CommandQueue& queue, mutex& printMutex, int& count, bool isFG) {
+void processCommands(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, int& doneFg, int& doneBg, bool isFG) {
     while (true) {
         vector<string> command = queue.pop();
         if (command.empty()) break;
@@ -193,6 +198,15 @@ void processCommands(CommandQueue& queue, mutex& printMutex, int& count, bool is
             lock_guard<mutex> lock(printMutex);
             executeCommand(command);
         }
+
+        if (isFG) {
+            doneFg++;
+        }
+        else {
+            doneBg++;
+        }
+
+        printMonitor(fgCount, bgCount, doneFg, doneBg);
     }
 }
 
@@ -203,11 +217,13 @@ int main() {
     mutex printMutex;
     int fgCount = 0;
     int bgCount = 0;
+    int doneFg = 0;
+    int doneBg = 0;
 
-    thread fgThread(processCommands, ref(fgQueue), ref(printMutex), ref(fgCount), true);
-    thread bgThread(processCommands, ref(bgQueue), ref(printMutex), ref(bgCount), false);
+    thread fgThread(processCommands, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), true);
+    thread bgThread(processCommands, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), false);
 
-    procFile(fn, fgQueue, bgQueue);
+    procFile(fn, fgQueue, bgQueue, fgCount, bgCount, doneFg, doneBg);
 
     fgThread.join();
     bgThread.join();

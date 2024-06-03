@@ -1,7 +1,5 @@
 echo abc
-&echo qwe
 dummy
-gcd 12 16
-&gcd 20 30
+&gcd 12 16
 prime 10000
 sum 100000
