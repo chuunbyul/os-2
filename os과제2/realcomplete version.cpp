@@ -3,13 +3,51 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <chrono>
-#include <algorithm>
-#include <mutex>
 #include <fstream>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
 
-#define Y 500
 using namespace std;
+
+class CommandQueue {
+private:
+    queue<vector<string>> commands;
+    mutex mtx;
+    condition_variable cv;
+    bool done = false;
+
+public:
+    void push(const vector<string>& command) {
+        {
+            lock_guard<mutex> lock(mtx);
+            commands.push(command);
+        }
+        cv.notify_one();
+    }
+
+    vector<string> pop() {
+        unique_lock<mutex> lock(mtx);
+        cv.wait(lock, [&] { return !commands.empty() || done; });
+        if (commands.empty() && done) return {};
+        vector<string> command = commands.front();
+        commands.pop();
+        return command;
+    }
+
+    void setDone() {
+        {
+            lock_guard<mutex> lock(mtx);
+            done = true;
+        }
+        cv.notify_all();
+    }
+
+    bool isDone() {
+        lock_guard<mutex> lock(mtx);
+        return done && commands.empty();
+    }
+};
 
 void Echo(const vector<string>& t) {
     for (size_t j = 1; j < t.size(); ++j) {
@@ -72,27 +110,22 @@ void Sum(const vector<string>& t) {
     cout << s << endl;
 }
 
-void executeCommand(const vector<string>& t, bool bg) {
+void executeCommand(const vector<string>& t) {
     const string& c = t[0];
     if (c == "echo") {
         Echo(t);
-    }
-    else if (c == "gcd") {
+    } else if (c == "gcd") {
         GCD(t);
-    }
-    else if (c == "prime") {
+    } else if (c == "prime") {
         Prime(t);
-    }
-    else if (c == "sum") {
+    } else if (c == "sum") {
         Sum(t);
-    }
-    else {
+    } else {
         cerr << "Unknown command: " << c << endl;
-        return;
     }
 }
 
-void procFile(const string& filename, bool bg) {
+void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue) {
     ifstream file(filename);
     string line;
     while (getline(file, line)) {
@@ -104,35 +137,44 @@ void procFile(const string& filename, bool bg) {
         }
         if (t.empty()) continue;
 
-        if ((bg && t[0][0] == '&') || (!bg && t[0][0] != '&')) {
-            cout << "prompt> ";
-            for (const auto& tk : t) {
-                cout << tk << " ";
-            }
-            cout << endl;
-
-            if (t[0][0] == '&') {
-                t[0].erase(0, 1);  // Remove '&' character for BG commands
-            }
-
-            executeCommand(t, bg);
+        cout << "prompt> ";
+        for (const auto& tk : t) {
+            cout << tk << " ";
         }
+        cout << endl;
+
+        if (t[0][0] == '&') {
+            t[0].erase(0, 1);  // Remove '&' character for BG commands
+            bgQueue.push(t);
+        } else {
+            fgQueue.push(t);
+        }
+    }
+
+    fgQueue.setDone();
+    bgQueue.setDone();
+}
+
+void processCommands(CommandQueue& queue) {
+    while (true) {
+        vector<string> command = queue.pop();
+        if (command.empty()) break;
+        executeCommand(command);
     }
 }
 
 int main() {
     string fn = "commands.txt";
+    CommandQueue fgQueue;
+    CommandQueue bgQueue;
 
-    thread FG([&]() {
-        procFile(fn, false);
-        });
+    thread fgThread(processCommands, ref(fgQueue));
+    thread bgThread(processCommands, ref(bgQueue));
 
-    thread BG([&]() {
-        procFile(fn, true);
-        });
+    procFile(fn, fgQueue, bgQueue);
 
-    FG.join();
-    BG.join();
+    fgThread.join();
+    bgThread.join();
 
     return 0;
 }
