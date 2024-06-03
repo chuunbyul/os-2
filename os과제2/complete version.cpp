@@ -57,7 +57,7 @@ public:
 
 void Echo(const vector<string>& t) {
     for (size_t j = 1; j < t.size(); ++j) {
-        cout << t[j] << " ";
+        cout << "echo: " << t[j] << " ";
     }
     cout << endl;
 }
@@ -76,7 +76,7 @@ void GCD(const vector<string>& t) {
         x = y;
         y = temp;
     }
-    cout << x << endl;
+    cout << "gcd: " << x << endl;
 }
 
 bool isPrime(int n) {
@@ -101,7 +101,7 @@ void Prime(const vector<string>& t) {
             ++pc;
         }
     }
-    cout << pc << endl;
+    cout << "prime: " << pc << endl;
 }
 
 void Sum(const vector<string>& t) {
@@ -115,7 +115,7 @@ void Sum(const vector<string>& t) {
     for (int i = 1; i <= x; ++i) {
         s = (s + i) % MOD;
     }
-    cout << s << endl;
+    cout << "sum: " << s << endl;
 }
 
 void executeSingleCommand(const vector<string>& commandTokens) {
@@ -141,7 +141,7 @@ void executeSingleCommand(const vector<string>& commandTokens) {
     }
 }
 
-void executeCommand(const vector<string>& t) {
+int executeCommand(const vector<string>& t) {
     int r = 1;
     int p = DEFAULT_PERIOD;
     int d = DEFAULT_DURATION;
@@ -198,11 +198,12 @@ void executeCommand(const vector<string>& t) {
     for (auto& th : threads) {
         th.join();
     }
+    return r;
 }
 
 void Monitor(int& fgCount, int& bgCount) {
     while (true) {
-        this_thread::sleep_for(seconds(5));
+        this_thread::sleep_for(seconds(3));
         lock_guard<mutex> lock(mtx);
         cout << endl;
         cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
@@ -278,8 +279,7 @@ void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, bo
         if (command.empty()) break;
         {
             lock_guard<mutex> lock(printMutex);
-            executeCommand(command);
-            fgCount--;
+            fgCount -= executeCommand(command);
         }
     }
 }
@@ -290,8 +290,7 @@ void bgWorker(CommandQueue& bgQueue, mutex& printMutex, int& bgCount) {
         if (command.empty()) break;
 
         thread([command, &printMutex, &bgCount]() {
-            executeCommand(command);
-            bgCount--;
+            bgCount -= executeCommand(command);
             }).detach();
     }
 }
