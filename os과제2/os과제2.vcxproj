@@ -130,11 +130,13 @@
     <ClCompile Include="failed2-2.cpp" />
     <ClCompile Include="failed old.cpp" />
     <ClCompile Include="Complete version.cpp" />
+    <ClCompile Include="old version.cpp" />
     <ClCompile Include="save.cpp" />
     <ClCompile Include="failed2-3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="commands.txt" />
+    <Text Include="commands_old.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

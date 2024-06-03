@@ -30,8 +30,12 @@
     <ClCompile Include="Complete version.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="old version.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="commands.txt" />
+    <Text Include="commands_old.txt" />
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
-// 2-2 2-3 완성
-// 2-3의 -m 구현 못함
+// 2-2 2-3
+// ;, -m 구현 못함
 #include <iostream>
 #include <thread>
 #include <string>
@@ -12,9 +12,10 @@
 #include <iomanip>
 #include <Windows.h>
 #include <chrono>
-#include <stdlib.h>
 
-#define Y   500
+#define Y 500
+#define DEFAULT_DURATION 300
+#define DEFAULT_PERIOD 1
 
 using namespace std;
 using namespace std::chrono;
@@ -52,11 +53,6 @@ public:
         }
         cv.notify_all();
     }
-
-    bool isDone() {
-        lock_guard<mutex> lock(mtx);
-        return done && commands.empty();
-    }
 };
 
 void Echo(const vector<string>& t) {
@@ -66,9 +62,7 @@ void Echo(const vector<string>& t) {
     cout << endl;
 }
 
-void Dummy() {
-
-}
+void Dummy() {}
 
 void GCD(const vector<string>& t) {
     if (t.size() != 3) {
@@ -124,22 +118,23 @@ void Sum(const vector<string>& t) {
     cout << s << endl;
 }
 
-void excSC(const vector<string>& t) {
-    const string& c = t[0];
+void executeSingleCommand(const vector<string>& commandTokens) {
+    lock_guard<mutex> lock(mtx);
+    const string& c = commandTokens[0];
     if (c == "echo") {
-        Echo(t);
+        Echo(commandTokens);
     }
     else if (c == "dummy") {
         Dummy();
     }
     else if (c == "gcd") {
-        GCD(t);
+        GCD(commandTokens);
     }
     else if (c == "prime") {
-        Prime(t);
+        Prime(commandTokens);
     }
     else if (c == "sum") {
-        Sum(t);
+        Sum(commandTokens);
     }
     else {
         cerr << "Unknown command: " << c << endl;
@@ -148,10 +143,10 @@ void excSC(const vector<string>& t) {
 
 void executeCommand(const vector<string>& t) {
     int r = 1;
-    int p = 0;
-    int d = 300;
-    int y = 20;
+    int p = DEFAULT_PERIOD;
+    int d = DEFAULT_DURATION;
 
+    // Parse
     for (size_t i = 0; i < t.size(); ++i) {
         if (t[i] == "-n") {
             if (i + 1 < t.size()) {
@@ -170,51 +165,66 @@ void executeCommand(const vector<string>& t) {
         }
     }
 
-    vector<string> CT;
+    // Extract command tokens
+    vector<string> commandTokens;
     for (size_t i = 0; i < t.size(); ++i) {
         if (t[i] != "-n" && t[i] != "-p" && t[i] != "-d") {
-            CT.push_back(t[i]);
+            commandTokens.push_back(t[i]);
         }
         else {
             break;
         }
     }
 
-    int rp = r * p * y;
-    for (int count = 0; count < r; ++count) {
-        excSC(CT);
+    // Launch threads
+    vector<thread> threads;
+    for (int i = 0; i < r; ++i) {
+        threads.emplace_back([commandTokens, p, d]() {
+            auto start = steady_clock::now();
+            while (true) {
+                executeSingleCommand(commandTokens);
 
-        if (p > 0 && d > 0) {
-            Sleep(p * y);
-            if (rp >= d) {
-                cout << "실행시간 초과" << endl;
-                exit(1);
+                if (duration_cast<seconds>(steady_clock::now() - start).count() >= d) {
+                    break;
+                }
+
+                if (p > 0) {
+                    this_thread::sleep_for(seconds(p));
+                }
             }
-        }
-        else if (p > 0) {
-            Sleep(p * y);
-        }
+            });
+    }
+
+    for (auto& th : threads) {
+        th.join();
     }
 }
 
-void Monitor(int fgCount, int bgCount, int doneFg, int doneBg) {
-    cout << endl;
-    cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
-    cout << "---------------------------" << endl;
-    cout << "DQ: P => ";
-    for (int i = 0; i < doneFg; i++) {
-        cout << "[" << i << "F] ";
+void Monitor(int& fgCount, int& bgCount) {
+    while (true) {
+        this_thread::sleep_for(seconds(5));
+        lock_guard<mutex> lock(mtx);
+        cout << endl;
+        cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
+        cout << "---------------------------" << endl;
+        cout << "DQ: P => ";
+        for (int i = 0; i < fgCount; i++) {
+            cout << "[" << i << "F] ";
+            if (i != 0 && i % 3 == 0) cout << endl << '\t';
+        }
+        cout << endl << '\t';
+        for (int i = 0; i < bgCount; i++) {
+            cout << "[" << i << "B] ";
+            if (i != 0 && i % 3 == 0) cout << endl << '\t';
+        }
+        cout << " (bottom / top)" << endl;
+        cout << "---------------------------" << endl;
+        cout << "WQ: []" << endl;
+        cout << endl;
     }
-    for (int i = 0; i < doneBg; i++) {
-        cout << " [" << i << "B]";
-    }
-    cout << " (bottom / top)" << endl;
-    cout << "---------------------------" << endl;
-    cout << "WQ: []" << endl;
-    cout << endl;
 }
 
-void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue, int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
+void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue, int& fgCount, int& bgCount) {
     ifstream file(filename);
     string line;
     while (getline(file, line)) {
@@ -233,11 +243,27 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
         if (t[0][0] == '&') {
             t[0].erase(0, 1);  // Remove '&' character for BG commands
             bgQueue.push(t);
-            bgCount++;
+            int r = 1;
+            for (size_t i = 0; i < t.size(); ++i) {
+                if (t[i] == "-n") {
+                    if (i + 1 < t.size()) {
+                        r = stoi(t[i + 1]);
+                    }
+                }
+            }
+            bgCount += r;
         }
         else {
             fgQueue.push(t);
-            fgCount++;
+            int r = 1;
+            for (size_t i = 0; i < t.size(); ++i) {
+                if (t[i] == "-n") {
+                    if (i + 1 < t.size()) {
+                        r = stoi(t[i + 1]);
+                    }
+                }
+            }
+            fgCount += r;
         }
         Sleep(Y);
     }
@@ -246,22 +272,27 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
     bgQueue.setDone();
 }
 
-void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, int& doneFg, int& doneBg, bool isFG) {
+void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, bool isFG) {
     while (true) {
         vector<string> command = queue.pop();
         if (command.empty()) break;
         {
             lock_guard<mutex> lock(printMutex);
             executeCommand(command);
+            fgCount--;
         }
-        if (isFG) {
-            doneFg++;
-        }
-        else {
-            doneBg++;
-        }
-        lock_guard<mutex> lock(printMutex);
-        Monitor(fgCount, bgCount, doneFg, doneBg);
+    }
+}
+
+void bgWorker(CommandQueue& bgQueue, mutex& printMutex, int& bgCount) {
+    while (true) {
+        vector<string> command = bgQueue.pop();
+        if (command.empty()) break;
+
+        thread([command, &printMutex, &bgCount]() {
+            executeCommand(command);
+            bgCount--;
+            }).detach();
     }
 }
 
@@ -272,16 +303,17 @@ int main() {
     mutex printMutex;
     int fgCount = 0;
     int bgCount = 0;
-    int doneFg = 0;
-    int doneBg = 0;
 
-    thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), true);
-    thread bgThread(proC, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), false);
+    thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), true);
+    thread bgThread(bgWorker, ref(bgQueue), ref(printMutex), ref(bgCount));
 
-    procFile(fn, fgQueue, bgQueue, fgCount, bgCount, doneFg, doneBg);
+    thread monitorThread(Monitor, ref(fgCount), ref(bgCount));
+
+    procFile(fn, fgQueue, bgQueue, fgCount, bgCount);
 
     fgThread.join();
     bgThread.join();
+    monitorThread.detach();
 
     return 0;
 }
