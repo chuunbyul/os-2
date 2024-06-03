@@ -202,7 +202,7 @@ void executeCommand(const vector<string>& t) {
     }
 }
 
-void Monitor(int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
+void Monitor(int& fgCount, int& bgCount) {
     while (true) {
         this_thread::sleep_for(seconds(5));
         lock_guard<mutex> lock(mtx);
@@ -226,7 +226,7 @@ void Monitor(int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
     }
 }
 
-void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue, int& fgCount, int& bgCount, int& doneFg, int& doneBg) {
+void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue, int& fgCount, int& bgCount) {
     ifstream file(filename);
     string line;
     while (getline(file, line)) {
@@ -274,19 +274,13 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
     bgQueue.setDone();
 }
 
-void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, int& doneFg, int& doneBg, bool isFG) {
+void proC(CommandQueue& queue, mutex& printMutex, int& fgCount, int& bgCount, bool isFG) {
     while (true) {
         vector<string> command = queue.pop();
         if (command.empty()) break;
         {
             lock_guard<mutex> lock(printMutex);
             executeCommand(command);
-        }
-        if (isFG) {
-            doneFg++;
-        }
-        else {
-            doneBg++;
         }
         lock_guard<mutex> lock(printMutex);
     }
@@ -302,12 +296,12 @@ int main() {
     int doneFg = 0;
     int doneBg = 0;
 
-    thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), true);
-    thread bgThread(proC, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg), false);
+    thread fgThread(proC, ref(fgQueue), ref(printMutex), ref(fgCount), ref(bgCount), true);
+    thread bgThread(proC, ref(bgQueue), ref(printMutex), ref(fgCount), ref(bgCount), false);
 
-    thread monitorThread(Monitor, ref(fgCount), ref(bgCount), ref(doneFg), ref(doneBg));
+    thread monitorThread(Monitor, ref(fgCount), ref(bgCount));
 
-    procFile(fn, fgQueue, bgQueue, fgCount, bgCount, doneFg, doneBg);
+    procFile(fn, fgQueue, bgQueue, fgCount, bgCount);
 
     fgThread.join();
     bgThread.join();
