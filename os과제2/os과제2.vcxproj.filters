@@ -18,16 +18,16 @@
     <ClCompile Include="save.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="2-3main.cpp">
+    <ClCompile Include="failed2-3.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="2-2main.cpp">
+    <ClCompile Include="failed2-2.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="Old version.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="complete version.cpp">
+    <ClCompile Include="Complete version.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
