@@ -128,7 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="failed2-2.cpp" />
-    <ClCompile Include="Old version.cpp" />
+    <ClCompile Include="failed old.cpp" />
     <ClCompile Include="Complete version.cpp" />
     <ClCompile Include="save.cpp" />
     <ClCompile Include="failed2-3.cpp" />
