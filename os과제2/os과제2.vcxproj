@@ -127,12 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="failed2-2.cpp" />
-    <ClCompile Include="failed old.cpp" />
     <ClCompile Include="Complete version.cpp" />
-    <ClCompile Include="old version.cpp" />
-    <ClCompile Include="save.cpp" />
-    <ClCompile Include="failed2-3.cpp" />
     <ClCompile Include="실패본\failed old.cpp" />
     <ClCompile Include="실패본\failed2-2.cpp" />
     <ClCompile Include="실패본\failed2-3.cpp" />
@@ -141,7 +136,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="commands.txt" />
-    <Text Include="commands_old.txt" />
     <Text Include="실패본\commands_old.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

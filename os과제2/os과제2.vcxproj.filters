@@ -15,22 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="save.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="failed2-3.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="failed2-2.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="failed old.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
     <ClCompile Include="Complete version.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="old version.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="실패본\failed old.cpp">
@@ -51,7 +36,6 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="commands.txt" />
-    <Text Include="commands_old.txt" />
     <Text Include="실패본\commands_old.txt" />
   </ItemGroup>
 </Project>
