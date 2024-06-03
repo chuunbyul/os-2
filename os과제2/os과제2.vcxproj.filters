@@ -24,10 +24,10 @@
     <ClCompile Include="2-2main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="complete version.cpp">
+    <ClCompile Include="Old version.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="realcomplete version.cpp">
+    <ClCompile Include="complete version.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
