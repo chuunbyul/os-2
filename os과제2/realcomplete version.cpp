@@ -7,9 +7,9 @@
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+#include <iomanip>
 
 using namespace std;
-mutex mtx;
 
 class CommandQueue {
 private:
@@ -55,6 +55,10 @@ void Echo(const vector<string>& t) {
         cout << t[j] << " ";
     }
     cout << endl;
+}
+
+void Dummy() {
+
 }
 
 void GCD(const vector<string>& t) {
@@ -115,20 +119,39 @@ void executeCommand(const vector<string>& t) {
     const string& c = t[0];
     if (c == "echo") {
         Echo(t);
-    } else if (c == "gcd") {
+    }
+    else if (c == "dummy") {
+        Dummy();
+    }
+    else if (c == "gcd") {
         GCD(t);
-    } else if (c == "prime") {
+    }
+    else if (c == "prime") {
         Prime(t);
-    } else if (c == "sum") {
+    }
+    else if (c == "sum") {
         Sum(t);
-    } else {
+    }
+    else {
         cerr << "Unknown command: " << c << endl;
     }
+}
+
+void printMonitor(int fgCount, int bgCount) {
+    cout << endl;
+    cout << "Running: [" << fgCount << "F] [" << bgCount << "B]" << endl;
+    cout << "---------------------------" << endl;
+    cout << "DQ: P => (bottom/top)" << endl;
+    cout << "---------------------------" << endl;
+    cout << "WQ: []" << endl;
+    cout << endl;
 }
 
 void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQueue) {
     ifstream file(filename);
     string line;
+    int fgCount = 0;
+    int bgCount = 0;
     while (getline(file, line)) {
         istringstream iss(line);
         vector<string> t;
@@ -147,24 +170,28 @@ void procFile(const string& filename, CommandQueue& fgQueue, CommandQueue& bgQue
         if (t[0][0] == '&') {
             t[0].erase(0, 1);  // Remove '&' character for BG commands
             bgQueue.push(t);
-        } else {
-            fgQueue.push(t);
+            bgCount++;
         }
+        else {
+            fgQueue.push(t);
+            fgCount++;
+        }
+
+        printMonitor(fgCount, bgCount);
     }
 
     fgQueue.setDone();
     bgQueue.setDone();
 }
 
-void processCommands(CommandQueue& queue) {
+void processCommands(CommandQueue& queue, mutex& printMutex, int& count, bool isFG) {
     while (true) {
         vector<string> command = queue.pop();
         if (command.empty()) break;
 
         {
-            mtx.lock();
+            lock_guard<mutex> lock(printMutex);
             executeCommand(command);
-            mtx.unlock();
         }
     }
 }
@@ -173,9 +200,12 @@ int main() {
     string fn = "commands.txt";
     CommandQueue fgQueue;
     CommandQueue bgQueue;
+    mutex printMutex;
+    int fgCount = 0;
+    int bgCount = 0;
 
-    thread fgThread(processCommands, ref(fgQueue));
-    thread bgThread(processCommands, ref(bgQueue));
+    thread fgThread(processCommands, ref(fgQueue), ref(printMutex), ref(fgCount), true);
+    thread bgThread(processCommands, ref(bgQueue), ref(printMutex), ref(bgCount), false);
 
     procFile(fn, fgQueue, bgQueue);
 
