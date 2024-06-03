@@ -1,3 +1,5 @@
+// 2-2 2-3 완성
+// 2-3의 -m 구현 못함
 #include <iostream>
 #include <thread>
 #include <string>
