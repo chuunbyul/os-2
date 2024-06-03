@@ -1,8 +1,8 @@
-// 2-2 껍데기만 구현
-// 2-3 구현
-// 1) ;, & 구현
-// 2) echo, dummy, gcd, prime, sum 구현
-// 3) -n, -d, -p 구현, -m 못함
+// 2-2 only completed shape
+// 2-3 Completed
+// 1);, & complete
+// 2) echo, dummy, gcd, prime, sum complete
+// 3) -n, -d, -p complete, -m failure
 #include <iostream>
 #include <thread>
 #include <string>
@@ -340,4 +340,3 @@ int main() {
 
     return 0;
 }
-// 커밋 오류
